@@ -1,13 +1,31 @@
+using EcommerceOrders.Api.Endpoints;
+using EcommerceOrders.Api.Middlewares;
+using EcommerceOrders.Application.Interfaces.Services;
+using EcommerceOrders.Application.Services;
+using EcommerceOrders.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// 1. Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// 2. Health Check
+builder.Services.AddHealthChecks();
+
+// 3. Tratamento Global de Erros 
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<TratamentoGlobalErrosHandler>();
+
+// 4. Injeção de Dependência das Camadas
+builder.Services.AdicionarInfraestrutura(builder.Configuration);
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 5. Configuração dos Middlewares
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -16,29 +34,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+// 6. Mapeamento das Rotas
+app.MapHealthChecks("/health");
+app.MapearRotasPedidos();
 
 app.Run();
-
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
