@@ -2,7 +2,9 @@
 using EcommerceOrders.Application.DTOs.Responses;
 using EcommerceOrders.Application.Interfaces.Repositories;
 using EcommerceOrders.Application.Interfaces.Services;
+using EcommerceOrders.Domain.Constants;
 using EcommerceOrders.Domain.Entities;
+using EcommerceOrders.Domain.Enums;
 using EcommerceOrders.Domain.Exceptions;
 
 namespace EcommerceOrders.Application.Services;
@@ -18,11 +20,34 @@ public class PedidoService : IPedidoService
 
     public async Task<PedidoResponse> CriarAsync(CriarPedidoRequest request, CancellationToken cancellationToken = default)
     {
-        var itens = request.Itens.Select(item =>
-            new ItemPedido(item.ProdutoId, item.NomeProduto, item.PrecoUnitario, item.Quantidade)
-        );
+        if (request.CompradorId == Guid.Empty)
+            throw new RegraDeNegocioException(MensagensDeNegocio.CompradorObrigatorio);
 
-        var pedido = new Pedido(request.CompradorId, itens);
+        if (request.Itens == null || !request.Itens.Any())
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoSemProdutos);
+
+        foreach (var item in request.Itens)
+        {
+            if (item.PrecoUnitario <= 0)
+                throw new RegraDeNegocioException(MensagensDeNegocio.PrecoProdutoInvalido(item.NomeProduto));
+
+            if (item.Quantidade <= 0)
+                throw new RegraDeNegocioException(MensagensDeNegocio.QuantidadeProdutoInvalida(item.NomeProduto));
+        }
+
+        var pedido = new Pedido
+        {
+            CompradorId = request.CompradorId,
+            Status = StatusPedido.Iniciado,
+            DataCriacao = DateTime.UtcNow,
+            Itens = request.Itens.Select(item => new ItemPedido
+            {
+                ProdutoId = item.ProdutoId,
+                NomeProduto = item.NomeProduto,
+                PrecoUnitario = item.PrecoUnitario,
+                Quantidade = item.Quantidade
+            }).ToList()
+        };
 
         await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
@@ -46,13 +71,24 @@ public class PedidoService : IPedidoService
     {
         var pedido = await _pedidoRepository.ObterPorIdAsync(id, cancellationToken);
         if (pedido is null)
-            throw new RegraDeNegocioException($"Pedido com ID '{id}' não foi encontrado.");
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoNaoEncontrado(id));
 
-        var novosItens = request.Itens.Select(item =>
-            new ItemPedido(item.ProdutoId, item.NomeProduto, item.PrecoUnitario, item.Quantidade)
-        );
+        if (pedido.Status != StatusPedido.Iniciado)
+            throw new RegraDeNegocioException(MensagensDeNegocio.ApenasPedidosNaoProcessadosPodemSerAlterados);
 
-        pedido.AlterarItens(novosItens);
+        if (request.Itens == null || !request.Itens.Any())
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoSemProdutos);
+
+        pedido.Itens = request.Itens.Select(item => new ItemPedido
+        {
+            PedidoId = pedido.Id,
+            ProdutoId = item.ProdutoId,
+            NomeProduto = item.NomeProduto,
+            PrecoUnitario = item.PrecoUnitario,
+            Quantidade = item.Quantidade
+        }).ToList();
+
+        pedido.DataAtualizacao = DateTime.UtcNow;
 
         await _pedidoRepository.AtualizarAsync(pedido, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
@@ -64,9 +100,13 @@ public class PedidoService : IPedidoService
     {
         var pedido = await _pedidoRepository.ObterPorIdAsync(id, cancellationToken);
         if (pedido is null)
-            throw new RegraDeNegocioException($"Pedido com ID '{id}' não foi encontrado.");
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoNaoEncontrado(id));
 
-        pedido.Cancelar();
+        if (pedido.Status != StatusPedido.Iniciado && pedido.Status != StatusPedido.Processado)
+            throw new RegraDeNegocioException(MensagensDeNegocio.ApenasPedidosIniciadosOuProcessadosPodemSerCancelados);
+
+        pedido.Status = StatusPedido.Cancelado;
+        pedido.DataAtualizacao = DateTime.UtcNow;
 
         await _pedidoRepository.AtualizarAsync(pedido, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
@@ -78,9 +118,13 @@ public class PedidoService : IPedidoService
     {
         var pedido = await _pedidoRepository.ObterPorIdAsync(id, cancellationToken);
         if (pedido is null)
-            throw new RegraDeNegocioException($"Pedido com ID '{id}' não foi encontrado.");
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoNaoEncontrado(id));
 
-        pedido.Processar();
+        if (pedido.Status != StatusPedido.Iniciado)
+            throw new RegraDeNegocioException(MensagensDeNegocio.StatusInvalidoParaProcessamento(pedido.Status.ToString()));
+
+        pedido.Status = StatusPedido.Processado;
+        pedido.DataAtualizacao = DateTime.UtcNow;
 
         await _pedidoRepository.AtualizarAsync(pedido, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
@@ -92,9 +136,13 @@ public class PedidoService : IPedidoService
     {
         var pedido = await _pedidoRepository.ObterPorIdAsync(id, cancellationToken);
         if (pedido is null)
-            throw new RegraDeNegocioException($"Pedido com ID '{id}' não foi encontrado.");
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoNaoEncontrado(id));
 
-        pedido.MarcarComoEnviado();
+        if (pedido.Status != StatusPedido.Processado)
+            throw new RegraDeNegocioException(MensagensDeNegocio.ApenasPedidosProcessadosPodemSerEnviados);
+
+        pedido.Status = StatusPedido.Enviado;
+        pedido.DataAtualizacao = DateTime.UtcNow;
 
         await _pedidoRepository.AtualizarAsync(pedido, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
