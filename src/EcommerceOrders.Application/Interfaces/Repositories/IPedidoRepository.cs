@@ -9,5 +9,7 @@ public interface IPedidoRepository
     Task<IEnumerable<Pedido>> ObterTodosAsync(FiltroPedidoRequest? filtro = null, CancellationToken cancellationToken = default);
     Task AdicionarAsync(Pedido pedido, CancellationToken cancellationToken = default);
     Task AtualizarAsync(Pedido pedido, CancellationToken cancellationToken = default);
+    Task SubstituirItensAsync(Pedido pedido, IEnumerable<ItemPedido> novosItens, CancellationToken cancellationToken = default);
+    Task RemoverAsync(Pedido pedido, CancellationToken cancellationToken = default);
     Task SalvarAlteracoesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace EcommerceOrders.Domain.Entities;
+﻿namespace EcommerceOrders.Domain.Entities;
 
 public class ItemPedido
 {

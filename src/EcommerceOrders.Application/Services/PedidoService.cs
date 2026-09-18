@@ -83,8 +83,18 @@ public class PedidoService : IPedidoService
         if (request.Itens == null || !request.Itens.Any())
             throw new RegraDeNegocioException(MensagensDeNegocio.PedidoSemProdutos);
 
-        pedido.Itens = request.Itens.Select(item => new ItemPedido
+        foreach (var item in request.Itens)
         {
+            if (item.PrecoUnitario <= 0)
+                throw new RegraDeNegocioException(MensagensDeNegocio.PrecoProdutoInvalido(item.NomeProduto));
+
+            if (item.Quantidade <= 0)
+                throw new RegraDeNegocioException(MensagensDeNegocio.QuantidadeProdutoInvalida(item.NomeProduto));
+        }
+
+        var novosItens = request.Itens.Select(item => new ItemPedido
+        {
+            Id = Guid.NewGuid(),
             PedidoId = pedido.Id,
             ProdutoId = item.ProdutoId,
             NomeProduto = item.NomeProduto,
@@ -92,9 +102,10 @@ public class PedidoService : IPedidoService
             Quantidade = item.Quantidade
         }).ToList();
 
+        pedido.Itens = novosItens;
         pedido.DataAtualizacao = DateTime.UtcNow;
 
-        await _pedidoRepository.AtualizarAsync(pedido, cancellationToken);
+        await _pedidoRepository.SubstituirItensAsync(pedido, novosItens, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
 
         return MapearParaResponse(pedido);
@@ -174,5 +185,15 @@ public class PedidoService : IPedidoService
                 ValorTotal = item.ValorTotal
             }).ToList()
         };
+    }
+
+    public async Task ExcluirAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var pedido = await _pedidoRepository.ObterPorIdAsync(id, cancellationToken);
+        if (pedido is null)
+            throw new RegraDeNegocioException(MensagensDeNegocio.PedidoNaoEncontrado(id));
+
+        await _pedidoRepository.RemoverAsync(pedido, cancellationToken);
+        await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
     }
 }

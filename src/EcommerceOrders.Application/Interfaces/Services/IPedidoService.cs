@@ -1,5 +1,4 @@
-﻿
-using EcommerceOrders.Application.DTOs.Requests;
+﻿using EcommerceOrders.Application.DTOs.Requests;
 using EcommerceOrders.Application.DTOs.Responses;
 
 namespace EcommerceOrders.Application.Interfaces.Services;
@@ -13,4 +12,5 @@ public interface IPedidoService
     Task<PedidoResponse> CancelarAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PedidoResponse> ProcessarAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PedidoResponse> EnviarAsync(Guid id, CancellationToken cancellationToken = default);
+    Task ExcluirAsync(Guid id, CancellationToken cancellationToken = default);
 }
