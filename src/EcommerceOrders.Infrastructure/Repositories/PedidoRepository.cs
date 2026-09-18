@@ -19,7 +19,6 @@ public class PedidoRepository : IPedidoRepository
     {
         return await _context.Pedidos
             .Include(p => p.Itens)
-            .Include(p => p.Comprador)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
@@ -28,7 +27,6 @@ public class PedidoRepository : IPedidoRepository
         var query = _context.Pedidos
             .AsNoTracking()
             .Include(p => p.Itens)
-            .Include(p => p.Comprador)
             .AsQueryable();
 
         if (filtro is not null)
