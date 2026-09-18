@@ -37,17 +37,21 @@ public class PedidoService : IPedidoService
 
         var pedido = new Pedido
         {
+            Id = Guid.NewGuid(),
             CompradorId = request.CompradorId,
             Status = StatusPedido.Iniciado,
-            DataCriacao = DateTime.UtcNow,
-            Itens = request.Itens.Select(item => new ItemPedido
-            {
-                ProdutoId = item.ProdutoId,
-                NomeProduto = item.NomeProduto,
-                PrecoUnitario = item.PrecoUnitario,
-                Quantidade = item.Quantidade
-            }).ToList()
+            DataCriacao = DateTime.UtcNow
         };
+
+        pedido.Itens = request.Itens.Select(item => new ItemPedido
+        {
+            Id = Guid.NewGuid(),
+            PedidoId = pedido.Id,
+            ProdutoId = item.ProdutoId,
+            NomeProduto = item.NomeProduto,
+            PrecoUnitario = item.PrecoUnitario,
+            Quantidade = item.Quantidade
+        }).ToList();
 
         await _pedidoRepository.AdicionarAsync(pedido, cancellationToken);
         await _pedidoRepository.SalvarAlteracoesAsync(cancellationToken);
