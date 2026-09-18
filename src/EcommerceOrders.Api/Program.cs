@@ -29,10 +29,16 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
+if(app.Environment.IsDevelopment())
 {
     app.UseSwagger(options =>
     {
+        options.RouteTemplate = "openapi/{documentName}.json";
+    });
+
+    app.UseSwagger(options =>
+    {
+        options.RouteTemplate = "swagger/{documentName}/swagger.json";
         options.SerializeAsV2 = true;
     });
 
