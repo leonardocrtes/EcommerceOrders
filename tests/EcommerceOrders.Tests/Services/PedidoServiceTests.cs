@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
-using Xunit;
 using EcommerceOrders.Application.DTOs.Requests;
 using EcommerceOrders.Application.Interfaces.Repositories;
 using EcommerceOrders.Application.Services;

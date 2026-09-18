@@ -10,7 +10,6 @@ public static class PedidoEndpoints
         var grupo = rotas.MapGroup("/api/v1/pedidos")
                          .WithTags("Pedidos");
 
-        // 1. Criar Pedido
         grupo.MapPost("", async (CriarPedidoRequest request, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.CriarAsync(request, ct);
@@ -19,7 +18,6 @@ public static class PedidoEndpoints
         .WithName("CriarPedido")
         .WithSummary("Cria um novo pedido");
 
-        // 2. Listar pedidos com filtros opcionais 
         grupo.MapGet("", async ([AsParameters] FiltroPedidoRequest filtro, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.ObterTodosAsync(filtro, ct);
@@ -28,7 +26,6 @@ public static class PedidoEndpoints
         .WithName("ListarPedidos")
         .WithSummary("Lista todos os pedidos com suporte a filtros");
 
-        // 3. Buscar pedido por ID
         grupo.MapGet("/{id:guid}", async (Guid id, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.ObterPorIdAsync(id, ct);
@@ -39,7 +36,6 @@ public static class PedidoEndpoints
         .WithName("BuscarPedidoPorId")
         .WithSummary("Busca um pedido específico por ID");
 
-        // 4. Alterar pedido
         grupo.MapPut("/{id:guid}", async (Guid id, AlterarPedidoRequest request, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.AlterarAsync(id, request, ct);
@@ -48,7 +44,6 @@ public static class PedidoEndpoints
         .WithName("AlterarPedido")
         .WithSummary("Altera os itens de um pedido (apenas pedidos não processados)");
 
-        // 5. Cancelar pedido
         grupo.MapPatch("/{id:guid}/cancelar", async (Guid id, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.CancelarAsync(id, ct);
@@ -57,7 +52,6 @@ public static class PedidoEndpoints
         .WithName("CancelarPedido")
         .WithSummary("Cancela um pedido (apenas pedidos iniciados ou processados)");
 
-        // 6. Processar pedido
         grupo.MapPatch("/{id:guid}/processar", async (Guid id, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.ProcessarAsync(id, ct);
@@ -66,7 +60,6 @@ public static class PedidoEndpoints
         .WithName("ProcessarPedido")
         .WithSummary("Avança o status do pedido para Processado");
 
-        // 7. Enviar pedido
         grupo.MapPatch("/{id:guid}/enviar", async (Guid id, IPedidoService pedidoService, CancellationToken ct) =>
         {
             var resultado = await pedidoService.EnviarAsync(id, ct);
@@ -74,6 +67,14 @@ public static class PedidoEndpoints
         })
         .WithName("EnviarPedido")
         .WithSummary("Marca o pedido como Enviado (apenas pedidos processados)");
+
+        grupo.MapDelete("/{id:guid}", async (Guid id, IPedidoService pedidoService, CancellationToken ct) =>
+        {
+            await pedidoService.ExcluirAsync(id, ct);
+            return Results.NoContent();
+        })
+        .WithName("ExcluirPedido")
+        .WithSummary("Exclui um pedido do sistema");
 
         return rotas;
     }

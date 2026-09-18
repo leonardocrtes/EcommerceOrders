@@ -54,7 +54,25 @@ public class PedidoRepository : IPedidoRepository
 
     public Task AtualizarAsync(Pedido pedido, CancellationToken cancellationToken = default)
     {
-        _context.Pedidos.Update(pedido);
+        return Task.CompletedTask;
+    }
+
+    public async Task SubstituirItensAsync(Pedido pedido, IEnumerable<ItemPedido> novosItens, CancellationToken cancellationToken = default)
+    {
+        var itensAntigos = await _context.ItensPedido
+            .Where(i => i.PedidoId == pedido.Id)
+            .ToListAsync(cancellationToken);
+
+        _context.ItensPedido.RemoveRange(itensAntigos);
+
+        var listaNovos = novosItens.ToList();
+        await _context.ItensPedido.AddRangeAsync(listaNovos, cancellationToken);
+        pedido.Itens = listaNovos;
+    }
+
+    public Task RemoverAsync(Pedido pedido, CancellationToken cancellationToken = default)
+    {
+        _context.Pedidos.Remove(pedido);
         return Task.CompletedTask;
     }
 

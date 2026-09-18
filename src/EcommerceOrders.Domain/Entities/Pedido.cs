@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using EcommerceOrders.Domain.Enums;
+﻿using EcommerceOrders.Domain.Enums;
 
 namespace EcommerceOrders.Domain.Entities;
 
